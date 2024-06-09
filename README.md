@@ -38,9 +38,8 @@ The allocation algorithm aims to distribute VMs across hosts to achieve load bal
 1. **Calculate Load Factor**:
     - For each host, compute the load factor if the VM were to be allocated to it.
     - The load factor is calculated as:
-      \[
-      \text{load\_factor} = \left( \frac{\text{remaining\_cpu}}{\text{total\_cpu}} \right) + \left( \frac{\text{remaining\_memory}}{\text{total\_memory}} \right) - \left( \frac{\text{number\_of\_vms}}{\text{avg\_vms\_per\_host} + 1} \right)
-      \]
+      
+        $$\text{loadFactor} = \left( \frac{\text{remainingCpu}}{\text{totalCpu}} \right) + \left( \frac{\text{remainingMemory}}{\text{totalMemory}} \right) - \left( \frac{\text{numberOfVms}}{\text{avgVmsPerHost} + 1} \right)$$
       Where:
       - `remaining_cpu` = `host.total_cpu` - `host.used_cpu` - `vm.cpu`
       - `remaining_memory` = `host.total_memory` - `host.used_memory` - `vm.memory`
@@ -54,15 +53,3 @@ The allocation algorithm aims to distribute VMs across hosts to achieve load bal
 3. **Redistribute VMs**:
     - When a new host is added, all VMs are temporarily removed from their current hosts.
     - Each VM is then reallocated to ensure even distribution across all available hosts.
-
-### Example
-
-Consider two hosts, `Host1` with 100 CPU and 200 memory, and `Host2` with 150 CPU and 300 memory. If we have a VM that requires 20 CPU and 50 memory, the algorithm will:
-
-1. Check if `Host1` and `Host2` can allocate the VM.
-2. Calculate the load factor for both hosts.
-3. Allocate the VM to the host with the higher load factor, balancing CPU, memory, and the number of VMs across hosts.
-
-## Conclusion
-
-This system helps to efficiently manage and allocate VMs across multiple hosts, ensuring that resources are utilized optimally and no single host is overloaded. The menu-based interface allows for easy interaction with the system, making it suitable for simple simulations and educational purposes.
