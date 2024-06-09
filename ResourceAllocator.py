@@ -1,3 +1,6 @@
+import tkinter as tk
+from tkinter import messagebox
+
 class InsufficientResourcesException(Exception):
     pass
 
@@ -32,14 +35,12 @@ class Host:
             self.used_memory -= vm.memory
             vm.host = None
 
-
 class VM:
     def __init__(self, id, cpu, memory):
         self.id = id
         self.cpu = cpu
         self.memory = memory
         self.host = None
-
 
 class ResourceAllocationSystem:
     def __init__(self):
@@ -138,78 +139,171 @@ class ResourceAllocationSystem:
         host = self.hosts.get(host_id)
         if not host:
             raise ResourceNotFoundException("Host not found")
-        vm_list=list(host.vms)
+        vm_list = list(host.vms)
         del self.hosts[host_id]
         for vm in vm_list:
             self.allocate_vm(vm.id)
 
+class ResourceAllocationApp:
+    def __init__(self, root):
+        self.system = ResourceAllocationSystem()
 
-def main():
-    system = ResourceAllocationSystem()
+        root.title("Resource Allocation System")
+        root.geometry("600x400")
 
-    while True:
-        print("\nResource Allocation System")
-        print("1. Add a host")
-        print("2. Add a VM")
-        print("3. View hosts")
-        print("4. View VMs")
-        print("5. Allocate VM to best host")
-        print("6. Delete a VM")
-        print("7. Delete a host")
-        print("8. View current allocation status")
-        print("9. Exit")
+        self.main_frame = tk.Frame(root)
+        self.main_frame.pack(fill=tk.BOTH, expand=True)
 
-        choice = input("Enter your choice: ")
+        self.label = tk.Label(self.main_frame, text="Resource Allocation System", font=("Arial", 16))
+        self.label.pack(pady=10)
 
-        if choice == '1':
-            id = input("Enter host ID: ")
-            total_cpu = int(input("Enter total CPU: "))
-            total_memory = int(input("Enter total memory: "))
-            system.add_host(id, total_cpu, total_memory)
-            print(f"Host {id} added.")
-        elif choice == '2':
-            id = input("Enter VM ID: ")
-            cpu = int(input("Enter required CPU: "))
-            memory = int(input("Enter required memory: "))
-            system.add_vm(id, cpu, memory)
-            print(f"VM {id} added.")
-        elif choice == '3':
-            hosts = system.view_hosts()
-            for host in hosts:
-                print(host)
-        elif choice == '4':
-            vms = system.view_vms()
-            for vm in vms:
-                print(vm)
-        elif choice == '5':
-            vm_id = input("Enter VM ID to allocate: ")
-            try:
-                system.allocate_vm(vm_id)
-                print(f"VM {vm_id} allocated to the best host.")
-            except (InsufficientResourcesException, ResourceNotFoundException) as e:
-                print(e)
-        elif choice == '6':
-            vm_id = input("Enter VM ID to delete: ")
-            try:
-                system.delete_vm(vm_id)
-                print(f"VM {vm_id} deleted.")
-            except ResourceNotFoundException as e:
-                print(e)
-        elif choice == '7':
-            host_id = input("Enter host ID to delete: ")
-            try:
-                system.delete_host(host_id)
-                print(f"Host {host_id} deleted.")
-            except ResourceNotFoundException as e:
-                print(e)
-        elif choice == '8':
-            allocation_status = system.view_allocation_status()
-            for host_id, vm_ids in allocation_status.items():
-                print(f"Host {host_id}: VMs {vm_ids}")
-        elif choice == '9':
-            break
+        self.menu_frame = tk.Frame(self.main_frame)
+        self.menu_frame.pack(pady=10)
+
+        self.add_host_button = tk.Button(self.menu_frame, text="Add a Host", command=self.add_host)
+        self.add_host_button.grid(row=0, column=0, padx=5, pady=5)
+
+        self.add_vm_button = tk.Button(self.menu_frame, text="Add a VM", command=self.add_vm)
+        self.add_vm_button.grid(row=0, column=1, padx=5, pady=5)
+
+        self.view_hosts_button = tk.Button(self.menu_frame, text="View Hosts", command=self.view_hosts)
+        self.view_hosts_button.grid(row=1, column=0, padx=5, pady=5)
+
+        self.view_vms_button = tk.Button(self.menu_frame, text="View VMs", command=self.view_vms)
+        self.view_vms_button.grid(row=1, column=1, padx=5, pady=5)
+
+        self.allocate_vm_button = tk.Button(self.menu_frame, text="Allocate VM to Best Host", command=self.allocate_vm)
+        self.allocate_vm_button.grid(row=2, column=0, padx=5, pady=5)
+
+        self.delete_vm_button = tk.Button(self.menu_frame, text="Delete a VM", command=self.delete_vm)
+        self.delete_vm_button.grid(row=2, column=1, padx=5, pady=5)
+
+        self.delete_host_button = tk.Button(self.menu_frame, text="Delete a Host", command=self.delete_host)
+        self.delete_host_button.grid(row=3, column=0, padx=5, pady=5)
+
+        self.view_allocation_button = tk.Button(self.menu_frame, text="View Allocation Status", command=self.view_allocation_status)
+        self.view_allocation_button.grid(row=3, column=1, padx=5, pady=5)
+
+        self.exit_button = tk.Button(self.menu_frame, text="Exit", command=root.quit)
+        self.exit_button.grid(row=4, column=0, columnspan=2, pady=10)
+
+        self.output_frame = tk.Frame(self.main_frame)
+        self.output_frame.pack(fill=tk.BOTH, expand=True)
+
+        self.output_text = tk.Text(self.output_frame, wrap=tk.WORD, state=tk.DISABLED)
+        self.output_text.pack(fill=tk.BOTH, expand=True)
+
+    def add_host(self):
+        self.input_dialog("Add a Host", self.add_host_action)
+
+    def add_vm(self):
+        self.input_dialog("Add a VM", self.add_vm_action)
+
+    def view_hosts(self):
+        self.display_output(self.system.view_hosts())
+
+    def view_vms(self):
+        self.display_output(self.system.view_vms())
+
+    def allocate_vm(self):
+        self.input_dialog("Allocate VM to Best Host", self.allocate_vm_action, is_vm=True)
+
+    def delete_vm(self):
+        self.input_dialog("Delete a VM", self.delete_vm_action, is_vm=True)
+
+    def delete_host(self):
+        self.input_dialog("Delete a Host", self.delete_host_action)
+
+    def view_allocation_status(self):
+        self.display_output(self.system.view_allocation_status())
+
+    def input_dialog(self, title, action, is_vm=False):
+        dialog = tk.Toplevel()
+        dialog.title(title)
+        dialog.geometry("300x200")
+
+        id_label = tk.Label(dialog, text="Enter ID:")
+        id_label.pack(pady=5)
+        id_entry = tk.Entry(dialog)
+        id_entry.pack(pady=5)
+
+        if not is_vm:
+            cpu_label = tk.Label(dialog, text="Enter Total CPU:")
+            cpu_label.pack(pady=5)
+            cpu_entry = tk.Entry(dialog)
+            cpu_entry.pack(pady=5)
+
+            memory_label = tk.Label(dialog, text="Enter Total Memory:")
+            memory_label.pack(pady=5)
+            memory_entry = tk.Entry(dialog)
+            memory_entry.pack(pady=5)
         else:
-            print("Invalid choice. Please try again.")
+            cpu_label = tk.Label(dialog, text="Enter Required CPU:")
+            cpu_label.pack(pady=5)
+            cpu_entry = tk.Entry(dialog)
+            cpu_entry.pack(pady=5)
+
+            memory_label = tk.Label(dialog, text="Enter Required Memory:")
+            memory_label.pack(pady=5)
+            memory_entry = tk.Entry(dialog)
+            memory_entry.pack(pady=5)
+        def submit_action():
+            try:
+                if not is_vm:
+                    action(id_entry.get(), int(cpu_entry.get()), int(memory_entry.get()))
+                else:
+                    action(id_entry.get(), int(cpu_entry.get()), int(memory_entry.get()))
+                dialog.destroy()
+            except ValueError:
+                messagebox.showerror("Error", "Please enter valid numeric values.")
+
+        submit_button = tk.Button(dialog, text="Submit", command=submit_action)
+        submit_button.pack(pady=10)
+
+    def add_host_action(self, id, total_cpu, total_memory):
+        try:
+            self.system.add_host(id, total_cpu, total_memory)
+            self.display_output(f"Host {id} added.")
+        except InsufficientResourcesException as e:
+            self.display_output(str(e))
+        except Exception as e:
+            self.display_output("Error occurred.")
+
+    def add_vm_action(self, id, cpu, memory):
+        try:
+            self.system.add_vm(id, cpu, memory)
+            self.display_output(f"VM {id} added.")
+        except Exception as e:
+            self.display_output("Error occurred.")
+
+    def allocate_vm_action(self, vm_id, cpu, memory):
+        try:
+            self.system.allocate_vm(vm_id)
+            self.display_output(f"VM {vm_id} allocated to the best host.")
+        except (InsufficientResourcesException, ResourceNotFoundException) as e:
+            self.display_output(str(e))
+
+    def delete_vm_action(self, vm_id):
+        try:
+            self.system.delete_vm(vm_id)
+            self.display_output(f"VM {vm_id} deleted.")
+        except ResourceNotFoundException as e:
+            self.display_output(str(e))
+
+    def delete_host_action(self, host_id):
+        try:
+            self.system.delete_host(host_id)
+            self.display_output(f"Host {host_id} deleted.")
+        except ResourceNotFoundException as e:
+            self.display_output(str(e))
+
+    def display_output(self, message):
+        self.output_text.config(state=tk.NORMAL)
+        self.output_text.delete(1.0, tk.END)
+        self.output_text.insert(tk.END, message)
+        self.output_text.config(state=tk.DISABLED)
 
 if __name__ == "__main__":
-    main()
+    root = tk.Tk()
+    app = ResourceAllocationApp(root)
+    root.mainloop()

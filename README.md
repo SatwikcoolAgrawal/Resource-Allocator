@@ -38,8 +38,7 @@ The allocation algorithm aims to distribute VMs across hosts to achieve load bal
 1. **Calculate Load Factor**:
     - For each host, compute the load factor if the VM were to be allocated to it.
     - The load factor is calculated as:
-      
-        $$\text{loadFactor} = \left( \frac{\text{remainingCpu}}{\text{totalCpu}} \right) + \left( \frac{\text{remainingMemory}}{\text{totalMemory}} \right) - \left( \frac{\text{numberOfVms}}{\text{avgVmsPerHost} + 1} \right)$$
+    $$\text{loadFactor} = \left( \frac{\text{remainingCpu}}{\text{totalCpu}} \right) + \left( \frac{\text{remainingMemory}}{\text{totalMemory}} \right) - \left( \frac{\text{numberOfVms}}{\text{avgVmsPerHost} + 1} \right)$$
       Where:
       - `remaining_cpu` = `host.total_cpu` - `host.used_cpu` - `vm.cpu`
       - `remaining_memory` = `host.total_memory` - `host.used_memory` - `vm.memory`
