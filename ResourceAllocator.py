@@ -1,162 +1,215 @@
-import functools
+class InsufficientResourcesException(Exception):
+    pass
 
-class VirtualMachine:
-    CurrId=1
-    def __init__(self, inputRam:int=0, inputMemory:int=0):
-        self.id:int = VirtualMachine.CurrId
-        VirtualMachine.CurrId+=1
-        self.ram:int = inputRam
-        self.memory:int = inputMemory
-        self.host=None
+class ResourceNotFoundException(Exception):
+    pass
 
-    def printDetail(self)->None:
-        print(f"Virtual Machine {self.id}")
-        print(f"Ram required :{self.ram}")
-        print(f"Memory required :{self.memory}\n")
+class Host:
+    def __init__(self, id, total_cpu, total_memory):
+        self.id = id
+        self.total_cpu = total_cpu
+        self.total_memory = total_memory
+        self.used_cpu = 0
+        self.used_memory = 0
+        self.vms = []
 
-    def allocateHost(self,host)->None:
-        self.host=host
-
-    def deallocate(self)->None:
-        self.host=None
-
-
-class PhysicalHost:
-    
-    CurrId:int= 1
-    
-    def __init__(self , inputRam:int=0, inputMemory:int=0)->None:
-        self.id:int =PhysicalHost.CurrId
-        PhysicalHost.CurrId+=1 
-        self.totalRam:int = inputRam
-        self.totalMemory:int = inputMemory
-        self.availableRam:int = inputRam
-        self.availableMemory:int = inputMemory
-        self.Vms:list = []
-
-    def printDetail(self)->None:
-        print(f"Physical Host {self.id}")
-        print(f"Total Ram :{self.totalRam} && Available Ram :{self.availableRam}")
-        print(f"Total Memory :{self.totalMemory} && Available Memory :{self.availableMemory}")
-        print(f"List of Allocated Vm:")
-        for v in  self.Vms:
-            v.printDetail()
-        print()
-
-    def isPossibleToAllocate(self, vm:VirtualMachine)->bool:
-        return vm.memory <= self.availableMemory and vm.ram <= self.availableRam
-
-    def AllocateVm(self, vm:VirtualMachine)->bool:
-        if self.isPossibleToAllocate(vm):
-            self.Vms.append(vm)
-            vm.allocateHost(self)
-            self.availableMemory -= vm.memory
-            self.availableRam -= vm.ram
-            return True
+    def add_vm(self, vm):
+        if self.can_allocate(vm):
+            self.vms.append(vm)
+            self.used_cpu += vm.cpu
+            self.used_memory += vm.memory
+            vm.host = self
         else:
-            return False
+            raise InsufficientResourcesException("Insufficient resources on the host")
 
-    def DeallocateVm(self, vm:VirtualMachine)->None:
-        self.Vms.remove(vm)
-        self.availableMemory+=vm.memory
-        self.availableRam+=vm.ram
+    def can_allocate(self, vm):
+        return self.total_cpu - self.used_cpu >= vm.cpu and self.total_memory - self.used_memory >= vm.memory
 
-class ResourceAllocator:
-    
+    def remove_vm(self, vm):
+        if vm in self.vms:
+            self.vms.remove(vm)
+            self.used_cpu -= vm.cpu
+            self.used_memory -= vm.memory
+            vm.host = None
+
+
+class VM:
+    def __init__(self, id, cpu, memory):
+        self.id = id
+        self.cpu = cpu
+        self.memory = memory
+        self.host = None
+
+
+class ResourceAllocationSystem:
     def __init__(self):
-        self.VirtualMachines:list=[]
-        self.PhysicalHosts:list=[]
+        self.hosts = {}
+        self.vms = {}
 
-    
-    # def compare(self,a, b)->bool:
-    #     if len(a.Vms) != len(b.Vms): # Compare by the number of Vms
-    #         return len(a.Vms) < len(b.Vms)
-    #     return a.availableMemory * a.availableRam > b.availableMemory * b.availableRam
-    
-    
-    def sortHost(self):
-        self.PhysicalHosts.sort(key=lambda x: (-1*len(x.Vms),x.availableMemory*x.availableRam),reverse=True)
+    def add_host(self, id, total_cpu, total_memory):
+        self.hosts[id] = Host(id, total_cpu, total_memory)
+        self.redistribute_vms()
+
+    def add_vm(self, id, cpu, memory):
+        self.vms[id] = VM(id, cpu, memory)
+
+    def allocate_vm(self, vm_id):
+        vm = self.vms.get(vm_id)
+        if not vm:
+            raise ResourceNotFoundException("VM not found")
+
+        best_host = None
+        max_load_factor = float('-inf')
+
+        for host in self.hosts.values():
+            if host.can_allocate(vm):
+                load_factor = self.calculate_load_factor(vm, host)
+                if load_factor > max_load_factor:
+                    best_host = host
+                    max_load_factor = load_factor
+
+        if best_host:
+            if vm.host:
+                vm.host.remove_vm(vm)
+            best_host.add_vm(vm)
+        else:
+            raise InsufficientResourcesException("No suitable host found for the VM")
+
+    def calculate_load_factor(self, vm, host):
+        remaining_cpu = host.total_cpu - host.used_cpu - vm.cpu
+        remaining_memory = host.total_memory - host.used_memory - vm.memory
+        number_of_vms = len(host.vms) + 1
+
+        avg_vms_per_host = sum(len(h.vms) for h in self.hosts.values()) / len(self.hosts)
+        cpu_utilization = (remaining_cpu / host.total_cpu)
+        memory_utilization = (remaining_memory / host.total_memory)
+        vm_balance = (number_of_vms / (avg_vms_per_host + 1))
+
+        load_factor = cpu_utilization + memory_utilization - vm_balance
+        return load_factor
+
+    def redistribute_vms(self):
+        all_vms = list(self.vms.values())
+        for vm in all_vms:
+            if vm.host:
+                vm.host.remove_vm(vm)
+        for vm in all_vms:
+            self.allocate_vm(vm.id)
+
+    def view_hosts(self):
+        return [
+            {
+                'id': host.id,
+                'total_cpu': host.total_cpu,
+                'used_cpu': host.used_cpu,
+                'total_memory': host.total_memory,
+                'used_memory': host.used_memory,
+                'vms': [vm.id for vm in host.vms]
+            }
+            for host in self.hosts.values()
+        ]
+
+    def view_vms(self):
+        return [
+            {
+                'id': vm.id,
+                'cpu': vm.cpu,
+                'memory': vm.memory,
+                'host_id': vm.host.id if vm.host else None
+            }
+            for vm in self.vms.values()
+        ]
+
+    def view_allocation_status(self):
+        allocation_status = {}
+        for host in self.hosts.values():
+            allocation_status[host.id] = [vm.id for vm in host.vms]
+        return allocation_status
+
+    def delete_vm(self, vm_id):
+        vm = self.vms.get(vm_id)
+        if not vm:
+            raise ResourceNotFoundException("VM not found")
+        if vm.host:
+            vm.host.remove_vm(vm)
+        del self.vms[vm_id]
+
+    def delete_host(self, host_id):
+        host = self.hosts.get(host_id)
+        if not host:
+            raise ResourceNotFoundException("Host not found")
+        vm_list=list(host.vms)
+        del self.hosts[host_id]
+        for vm in vm_list:
+            self.allocate_vm(vm.id)
 
 
+def main():
+    system = ResourceAllocationSystem()
 
-    def addHost(self,ram,memo):
-        newHost=PhysicalHost(ram,memo)
-        self.PhysicalHosts.append(newHost)
-        self.sortHost()
-        return newHost
+    while True:
+        print("\nResource Allocation System")
+        print("1. Add a host")
+        print("2. Add a VM")
+        print("3. View hosts")
+        print("4. View VMs")
+        print("5. Allocate VM to best host")
+        print("6. Delete a VM")
+        print("7. Delete a host")
+        print("8. View current allocation status")
+        print("9. Exit")
 
+        choice = input("Enter your choice: ")
 
-    def addVm(self,ram,memo):
-        newVm=VirtualMachine(ram,memo)
-        self.VirtualMachines.append(newVm)
-        self.allocateHostToVm(newVm)
-        return newVm
-    
-    def allocateHostToVm(self,newVm:VirtualMachine):
-        for h in self.PhysicalHosts:
-            if h.AllocateVm(newVm):
-                self.sortHost()
-                print(f'VM{newVm.id} is allocated to PhyHost{h.id}\n')
-                return True
-        
-        print(f"Can't Allocate Vm{newVm.id} to Any Host\n")
-        return False
-    
-    def RemoveHost(self,host:PhysicalHost):
-        self.PhysicalHosts.remove(host)
-        for vm in host.Vms:
-            self.allocateHostToVm(vm)
-    
-    def removeVm(self,vm:VirtualMachine):
-        self.VirtualMachines.remove(vm)
-        vm.host.DeallocateVm(vm)
-        self.sortHost()
-        vm.deallocate()
+        if choice == '1':
+            id = input("Enter host ID: ")
+            total_cpu = int(input("Enter total CPU: "))
+            total_memory = int(input("Enter total memory: "))
+            system.add_host(id, total_cpu, total_memory)
+            print(f"Host {id} added.")
+        elif choice == '2':
+            id = input("Enter VM ID: ")
+            cpu = int(input("Enter required CPU: "))
+            memory = int(input("Enter required memory: "))
+            system.add_vm(id, cpu, memory)
+            print(f"VM {id} added.")
+        elif choice == '3':
+            hosts = system.view_hosts()
+            for host in hosts:
+                print(host)
+        elif choice == '4':
+            vms = system.view_vms()
+            for vm in vms:
+                print(vm)
+        elif choice == '5':
+            vm_id = input("Enter VM ID to allocate: ")
+            try:
+                system.allocate_vm(vm_id)
+                print(f"VM {vm_id} allocated to the best host.")
+            except (InsufficientResourcesException, ResourceNotFoundException) as e:
+                print(e)
+        elif choice == '6':
+            vm_id = input("Enter VM ID to delete: ")
+            try:
+                system.delete_vm(vm_id)
+                print(f"VM {vm_id} deleted.")
+            except ResourceNotFoundException as e:
+                print(e)
+        elif choice == '7':
+            host_id = input("Enter host ID to delete: ")
+            try:
+                system.delete_host(host_id)
+                print(f"Host {host_id} deleted.")
+            except ResourceNotFoundException as e:
+                print(e)
+        elif choice == '8':
+            allocation_status = system.view_allocation_status()
+            for host_id, vm_ids in allocation_status.items():
+                print(f"Host {host_id}: VMs {vm_ids}")
+        elif choice == '9':
+            break
+        else:
+            print("Invalid choice. Please try again.")
 
-    def printDetail(self):
-        for ph in self.PhysicalHosts:
-            ph.printDetail()
-
-
-
-if __name__=="__main__":
-    allocator=ResourceAllocator()
-    Ps={}
-    Vs={}
-    while (True):
-        print("""
-              1: Add New Physical Host
-              2: Add New Virtual Machine
-              3: Remove Host
-              4: Remove VM
-              else: Exit
-              """)
-        task=int(input("Enter Your Task :"))
-
-        match task:
-            case 1:
-                myram=int(input("Enter Host's Ram: "))
-                mymemo=int(input("Enter Host's Memory: "))
-                x=allocator.addHost(myram,mymemo)
-                print("-------------------------------------")
-                Ps[x.id]=x
-                allocator.printDetail()
-            case 2:
-                myram=int(input("Enter Vm's Ram: "))
-                mymemo=int(input("Enter Vm's Memory: "))
-                y=allocator.addVm(myram,mymemo)
-                print("-------------------------------------")
-                Vs[y.id]=y
-                allocator.printDetail()
-            case 3:
-                hostid=int(input("Enter Host Id :"))
-                allocator.RemoveHost(Ps[hostid])
-                print("-------------------------------------")
-                allocator.printDetail()
-            case 4:
-                Vmid=int(input("Enter VM Id :"))
-                allocator.removeVm(Vs[Vmid])
-                print("-------------------------------------")
-                allocator.printDetail()
-            case default:
-                break
+if __name__ == "__main__":
+    main()
