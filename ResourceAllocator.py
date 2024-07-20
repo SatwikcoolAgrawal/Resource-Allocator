@@ -1,3 +1,4 @@
+import customtkinter as ctk
 import tkinter as tk
 from tkinter import messagebox
 
@@ -148,49 +149,52 @@ class ResourceAllocationApp:
     def __init__(self, root):
         self.system = ResourceAllocationSystem()
 
+        ctk.set_appearance_mode("dark")  # Modes: "System" (standard), "Dark", "Light"
+        ctk.set_default_color_theme("blue")  # Themes: "blue" (standard), "green", "dark-blue"
+
         root.title("Resource Allocation System")
         root.geometry("600x400")
 
-        self.main_frame = tk.Frame(root)
+        self.main_frame = ctk.CTkFrame(root)
         self.main_frame.pack(fill=tk.BOTH, expand=True)
 
-        self.label = tk.Label(self.main_frame, text="Resource Allocation System", font=("Arial", 16))
+        self.label = ctk.CTkLabel(self.main_frame, text="Resource Allocation System", font=("Arial", 16))
         self.label.pack(pady=10)
 
-        self.menu_frame = tk.Frame(self.main_frame)
+        self.menu_frame = ctk.CTkFrame(self.main_frame)
         self.menu_frame.pack(pady=10)
 
-        self.add_host_button = tk.Button(self.menu_frame, text="Add a Host", command=self.add_host)
+        self.add_host_button = ctk.CTkButton(self.menu_frame, text="Add a Host", command=self.add_host)
         self.add_host_button.grid(row=0, column=0, padx=5, pady=5)
 
-        self.add_vm_button = tk.Button(self.menu_frame, text="Add a VM", command=self.add_vm)
+        self.add_vm_button = ctk.CTkButton(self.menu_frame, text="Add a VM", command=self.add_vm)
         self.add_vm_button.grid(row=0, column=1, padx=5, pady=5)
 
-        self.view_hosts_button = tk.Button(self.menu_frame, text="View Hosts", command=self.view_hosts)
+        self.view_hosts_button = ctk.CTkButton(self.menu_frame, text="View Hosts", command=self.view_hosts)
         self.view_hosts_button.grid(row=1, column=0, padx=5, pady=5)
 
-        self.view_vms_button = tk.Button(self.menu_frame, text="View VMs", command=self.view_vms)
+        self.view_vms_button = ctk.CTkButton(self.menu_frame, text="View VMs", command=self.view_vms)
         self.view_vms_button.grid(row=1, column=1, padx=5, pady=5)
 
-        self.allocate_vm_button = tk.Button(self.menu_frame, text="Allocate VM to Best Host", command=self.allocate_vm)
+        self.allocate_vm_button = ctk.CTkButton(self.menu_frame, text="Allocate VM to Best Host", command=self.allocate_vm)
         self.allocate_vm_button.grid(row=2, column=0, padx=5, pady=5)
 
-        self.delete_vm_button = tk.Button(self.menu_frame, text="Delete a VM", command=self.delete_vm)
+        self.delete_vm_button = ctk.CTkButton(self.menu_frame, text="Delete a VM", command=self.delete_vm)
         self.delete_vm_button.grid(row=2, column=1, padx=5, pady=5)
 
-        self.delete_host_button = tk.Button(self.menu_frame, text="Delete a Host", command=self.delete_host)
+        self.delete_host_button = ctk.CTkButton(self.menu_frame, text="Delete a Host", command=self.delete_host)
         self.delete_host_button.grid(row=3, column=0, padx=5, pady=5)
 
-        self.view_allocation_button = tk.Button(self.menu_frame, text="View Allocation Status", command=self.view_allocation_status)
+        self.view_allocation_button = ctk.CTkButton(self.menu_frame, text="View Allocation Status", command=self.view_allocation_status)
         self.view_allocation_button.grid(row=3, column=1, padx=5, pady=5)
 
-        self.exit_button = tk.Button(self.menu_frame, text="Exit", command=root.quit)
+        self.exit_button = ctk.CTkButton(self.menu_frame, text="Exit", command=root.quit)
         self.exit_button.grid(row=4, column=0, columnspan=2, pady=10)
 
-        self.output_frame = tk.Frame(self.main_frame)
+        self.output_frame = ctk.CTkFrame(self.main_frame)
         self.output_frame.pack(fill=tk.BOTH, expand=True)
 
-        self.output_text = tk.Text(self.output_frame, wrap=tk.WORD, state=tk.DISABLED)
+        self.output_text = ctk.CTkTextbox(self.output_frame, wrap=tk.WORD, state=tk.DISABLED)
         self.output_text.pack(fill=tk.BOTH, expand=True)
 
     def add_host(self):
@@ -218,35 +222,36 @@ class ResourceAllocationApp:
         self.display_output(self.system.view_allocation_status())
 
     def input_dialog(self, title, action, is_vm=False):
-        dialog = tk.Toplevel()
+        dialog = ctk.CTkToplevel()
         dialog.title(title)
         dialog.geometry("300x200")
 
-        id_label = tk.Label(dialog, text="Enter ID:")
+        id_label = ctk.CTkLabel(dialog, text="Enter ID:")
         id_label.pack(pady=5)
-        id_entry = tk.Entry(dialog)
+        id_entry = ctk.CTkEntry(dialog)
         id_entry.pack(pady=5)
 
         if not is_vm:
-            cpu_label = tk.Label(dialog, text="Enter Total CPU:")
+            cpu_label = ctk.CTkLabel(dialog, text="Enter Total CPU:")
             cpu_label.pack(pady=5)
-            cpu_entry = tk.Entry(dialog)
+            cpu_entry = ctk.CTkEntry(dialog)
             cpu_entry.pack(pady=5)
 
-            memory_label = tk.Label(dialog, text="Enter Total Memory:")
+            memory_label = ctk.CTkLabel(dialog, text="Enter Total Memory:")
             memory_label.pack(pady=5)
-            memory_entry = tk.Entry(dialog)
+            memory_entry = ctk.CTkEntry(dialog)
             memory_entry.pack(pady=5)
         else:
-            cpu_label = tk.Label(dialog, text="Enter Required CPU:")
+            cpu_label = ctk.CTkLabel(dialog, text="Enter Required CPU:")
             cpu_label.pack(pady=5)
-            cpu_entry = tk.Entry(dialog)
+            cpu_entry = ctk.CTkEntry(dialog)
             cpu_entry.pack(pady=5)
 
-            memory_label = tk.Label(dialog, text="Enter Required Memory:")
+            memory_label = ctk.CTkLabel(dialog, text="Enter Required Memory:")
             memory_label.pack(pady=5)
-            memory_entry = tk.Entry(dialog)
+            memory_entry = ctk.CTkEntry(dialog)
             memory_entry.pack(pady=5)
+
         def submit_action():
             try:
                 if not is_vm:
@@ -257,7 +262,7 @@ class ResourceAllocationApp:
             except ValueError:
                 messagebox.showerror("Error", "Please enter valid numeric values.")
 
-        submit_button = tk.Button(dialog, text="Submit", command=submit_action)
+        submit_button = ctk.CTkButton(dialog, text="Submit", command=submit_action)
         submit_button.pack(pady=10)
 
     def add_host_action(self, id, total_cpu, total_memory):
@@ -298,12 +303,12 @@ class ResourceAllocationApp:
             self.display_output(str(e))
 
     def display_output(self, message):
-        self.output_text.config(state=tk.NORMAL)
+        self.output_text.configure(state=tk.NORMAL)
         self.output_text.delete(1.0, tk.END)
         self.output_text.insert(tk.END, message)
-        self.output_text.config(state=tk.DISABLED)
+        self.output_text.configure(state=tk.DISABLED)
 
 if __name__ == "__main__":
-    root = tk.Tk()
+    root = ctk.CTk()
     app = ResourceAllocationApp(root)
     root.mainloop()
